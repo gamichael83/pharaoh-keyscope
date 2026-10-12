@@ -1,0 +1,40 @@
+name: Build macOS app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build (unsigned Release)
+        run: |
+          xcodebuild \
+            -project PharaohKeyScope.xcodeproj \
+            -target PharaohKeyScope \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package .app
+        run: |
+          cd build/Build/Products/Release
+          zip -qry PharaohKeyScope.zip PharaohKeyScope.app
+          ls -la
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PharaohKeyScope-macOS
+          path: build/Build/Products/Release/PharaohKeyScope.zip
+          if-no-files-found: error
