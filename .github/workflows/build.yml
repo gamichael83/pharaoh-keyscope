@@ -19,7 +19,7 @@ jobs:
         run: |
           xcodebuild \
             -project PharaohKeyScope.xcodeproj \
-            -target PharaohKeyScope \
+            -scheme PharaohKeyScope \
             -configuration Release \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
