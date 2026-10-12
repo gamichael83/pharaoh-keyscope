@@ -59,55 +59,47 @@ final class SystemAudioCapture: NSObject {
     private func handleAudio(_ sampleBuffer: CMSampleBuffer) {
         guard CMSampleBufferGetNumSamples(sampleBuffer) > 0,
               let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer),
-              let asbdPtr = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)
+              let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)?.pointee,
+              let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer)
         else { return }
-        let asbd = asbdPtr.pointee
 
-        var blockBuffer: CMBlockBuffer?
-        var audioBufferList = AudioBufferList()
-        let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
-            sampleBuffer,
-            bufferListSizeNeeded: nil,
-            bufferListOut: &audioBufferList,
-            bufferListSize: MemoryLayout<AudioBufferList>.size,
-            blockBufferAllocator: nil,
-            blockBufferOut: &blockBuffer)
-        guard status == noErr else { return }
-        // The "Retained" in the name means we own one reference — release it.
-        defer {
-            if let blockBuffer {
-                Unmanaged<CMBlockBuffer>.passUnretained(blockBuffer).release()
-            }
-        }
-
+        let totalLength = CMBlockBufferGetDataLength(dataBuffer)
+        let bytesPerFrame = Int(asbd.mBytesPerFrame)
         let channels = max(1, Int(asbd.mChannelsPerFrame))
+        guard totalLength > 0, bytesPerFrame > 0 else { return }
+        let frames = totalLength / bytesPerFrame
+        guard frames > 0 else { return }
+
+        // Copy the samples out of the block buffer (this also handles
+        // non-contiguous storage) instead of wrestling with AudioBufferList.
+        var bytes = [UInt8](repeating: 0, count: totalLength)
+        guard CMBlockBufferCopyDataBytes(dataBuffer, atOffset: 0,
+                                         dataLength: totalLength,
+                                         destination: &bytes) == noErr
+        else { return }
+
         let isFloat = asbd.mFormatID == kAudioFormatLinearPCM
             && (asbd.mFormatFlags & kAudioFormatFlagIsFloat) != 0
 
         var mono = [Float]()
-        mono.reserveCapacity(2048)
-        withUnsafeMutablePointer(to: &audioBufferList) { ablPtr in
-            let abl = UnsafeMutableAudioBufferListPointer(ablPtr)
-            for buffer in abl {
-                guard let data = buffer.mData else { continue }
-                let frames = Int(buffer.mDataByteSize) / max(1, Int(asbd.mBytesPerFrame))
-                if isFloat {
-                    let ptr = data.assumingMemoryBound(to: Float.self)
-                    for f in 0..<frames {
-                        var sum: Float = 0
-                        for c in 0..<channels { sum += ptr[f * channels + c] }
-                        mono.append(sum / Float(channels))
+        mono.reserveCapacity(frames)
+        bytes.withUnsafeBytes { raw in
+            if isFloat {
+                let ptr = raw.bindMemory(to: Float.self)
+                for f in 0..<frames {
+                    var sum: Float = 0
+                    for c in 0..<channels { sum += ptr[f * channels + c] }
+                    mono.append(sum / Float(channels))
+                }
+            } else {
+                // 16-bit integer fallback.
+                let ptr = raw.bindMemory(to: Int16.self)
+                for f in 0..<frames {
+                    var sum: Float = 0
+                    for c in 0..<channels {
+                        sum += Float(ptr[f * channels + c]) / 32768
                     }
-                } else {
-                    // 16-bit integer fallback.
-                    let ptr = data.assumingMemoryBound(to: Int16.self)
-                    for f in 0..<frames {
-                        var sum: Float = 0
-                        for c in 0..<channels {
-                            sum += Float(ptr[f * channels + c]) / 32768.0
-                        }
-                        mono.append(sum / Float(channels))
-                    }
+                    mono.append(sum / Float(channels))
                 }
             }
         }
