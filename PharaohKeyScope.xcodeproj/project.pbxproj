@@ -1,0 +1,287 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1B2C3D4E5F6000100000021 /* KeyScopeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000011 /* KeyScopeApp.swift */; };
+		A1B2C3D4E5F6000100000022 /* KeyScopeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000012 /* KeyScopeModel.swift */; };
+		A1B2C3D4E5F6000100000023 /* SystemAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000013 /* SystemAudioCapture.swift */; };
+		A1B2C3D4E5F6000100000024 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000014 /* AudioAnalyzer.swift */; };
+		A1B2C3D4E5F6000100000025 /* KeyDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000015 /* KeyDetector.swift */; };
+		A1B2C3D4E5F6000100000026 /* TempoDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000016 /* TempoDetector.swift */; };
+		A1B2C3D4E5F6000100000027 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000017 /* MainView.swift */; };
+		A1B2C3D4E5F6000100000028 /* NoteVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000018 /* NoteVisualizerView.swift */; };
+		A1B2C3D4E5F6000100000029 /* PianoStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000100000019 /* PianoStripView.swift */; };
+		A1B2C3D4E5F600010000002A /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600010000001A /* MenuBarView.swift */; };
+		A1B2C3D4E5F600010000002B /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600010000001B /* Accelerate.framework */; };
+		A1B2C3D4E5F600010000002C /* ScreenCaptureKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600010000001C /* ScreenCaptureKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1B2C3D4E5F6000100000004 /* PharaohKeyScope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PharaohKeyScope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F6000100000011 /* KeyScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyScopeApp.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000012 /* KeyScopeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyScopeModel.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000013 /* SystemAudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioCapture.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000014 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000015 /* KeyDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyDetector.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000016 /* TempoDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoDetector.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000017 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000018 /* NoteVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteVisualizerView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000100000019 /* PianoStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PianoStripView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600010000001A /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600010000001B /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		A1B2C3D4E5F600010000001C /* ScreenCaptureKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenCaptureKit.framework; path = System/Library/Frameworks/ScreenCaptureKit.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1B2C3D4E5F6000100000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F600010000002B /* Accelerate.framework in Frameworks */,
+				A1B2C3D4E5F600010000002C /* ScreenCaptureKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1B2C3D4E5F6000100000002 = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000100000011 /* KeyScopeApp.swift */,
+				A1B2C3D4E5F6000100000012 /* KeyScopeModel.swift */,
+				A1B2C3D4E5F6000100000013 /* SystemAudioCapture.swift */,
+				A1B2C3D4E5F6000100000014 /* AudioAnalyzer.swift */,
+				A1B2C3D4E5F6000100000015 /* KeyDetector.swift */,
+				A1B2C3D4E5F6000100000016 /* TempoDetector.swift */,
+				A1B2C3D4E5F6000100000017 /* MainView.swift */,
+				A1B2C3D4E5F6000100000018 /* NoteVisualizerView.swift */,
+				A1B2C3D4E5F6000100000019 /* PianoStripView.swift */,
+				A1B2C3D4E5F600010000001A /* MenuBarView.swift */,
+				A1B2C3D4E5F600010000001B /* Accelerate.framework */,
+				A1B2C3D4E5F600010000001C /* ScreenCaptureKit.framework */,
+				A1B2C3D4E5F6000100000003 /* Products */,
+			);
+			path = PharaohKeyScope;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000100000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000100000004 /* PharaohKeyScope.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1B2C3D4E5F6000100000005 /* PharaohKeyScope */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F600010000000A /* Build configuration list for PBXNativeTarget "PharaohKeyScope" */;
+			buildPhases = (
+				A1B2C3D4E5F6000100000006 /* Sources */,
+				A1B2C3D4E5F6000100000007 /* Frameworks */,
+				A1B2C3D4E5F6000100000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PharaohKeyScope;
+			productName = PharaohKeyScope;
+			productReference = A1B2C3D4E5F6000100000004 /* PharaohKeyScope.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1B2C3D4E5F6000100000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A1B2C3D4E5F6000100000005 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = A1B2C3D4E5F6000100000009 /* Build configuration list for PBXProject "PharaohKeyScope" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = A1B2C3D4E5F6000100000002;
+			productRefGroup = A1B2C3D4E5F6000100000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1B2C3D4E5F6000100000005 /* PharaohKeyScope */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1B2C3D4E5F6000100000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1B2C3D4E5F6000100000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F600010000002A /* MenuBarView.swift in Sources */,
+				A1B2C3D4E5F6000100000029 /* PianoStripView.swift in Sources */,
+				A1B2C3D4E5F6000100000028 /* NoteVisualizerView.swift in Sources */,
+				A1B2C3D4E5F6000100000027 /* MainView.swift in Sources */,
+				A1B2C3D4E5F6000100000026 /* TempoDetector.swift in Sources */,
+				A1B2C3D4E5F6000100000025 /* KeyDetector.swift in Sources */,
+				A1B2C3D4E5F6000100000024 /* AudioAnalyzer.swift in Sources */,
+				A1B2C3D4E5F6000100000023 /* SystemAudioCapture.swift in Sources */,
+				A1B2C3D4E5F6000100000022 /* KeyScopeModel.swift in Sources */,
+				A1B2C3D4E5F6000100000021 /* KeyScopeApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1B2C3D4E5F600010000000B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F600010000000C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F600010000000D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PharaohKeyScope/PharaohKeyScope.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PharaohKeyScope/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pharaohluxury.keyscope;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F600010000000E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PharaohKeyScope/PharaohKeyScope.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PharaohKeyScope/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pharaohluxury.keyscope;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1B2C3D4E5F6000100000009 /* Build configuration list for PBXProject "PharaohKeyScope" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F600010000000B /* Debug */,
+				A1B2C3D4E5F600010000000C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F600010000000A /* Build configuration list for PBXNativeTarget "PharaohKeyScope" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F600010000000D /* Debug */,
+				A1B2C3D4E5F600010000000E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1B2C3D4E5F6000100000001 /* Project object */;
+}
