@@ -93,13 +93,15 @@ final class KeyDetector {
 
         // Tiebreak: when the top two keys are close (cousin keys share most
         // of their notes), trust the bassline's tonic — but only when the
-        // bass evidence is genuinely dominant, not noise-level differences.
+        // keys are nearly tied AND the bass evidence is overwhelmingly
+        // dominant. Conservative: a wandering EDM bassline must not flip
+        // the key on a modest difference.
         var best = scored[0]
-        if best.r - runnerUp.r < 0.06,
-           let bassMax = smoothedBass.max(), bassMax > 0.1 {
+        if best.r - runnerUp.r < 0.03,
+           let bassMax = smoothedBass.max(), bassMax > 0.15 {
             let bassBest = smoothedBass[best.tonic]
             let bassRunner = smoothedBass[runnerUp.tonic]
-            if bassRunner >= bassMax * 0.8, bassRunner > bassBest * 1.25 {
+            if bassRunner >= bassMax * 0.9, bassRunner > bassBest * 1.5 {
                 best = runnerUp
             }
         }
