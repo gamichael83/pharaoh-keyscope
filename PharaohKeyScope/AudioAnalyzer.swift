@@ -99,11 +99,15 @@ final class AudioAnalyzer {
                 let power = Double(magnitudes[k])
                 guard power > 0 else { continue }
                 let freq = Double(k) * sampleRate / Double(frameSize)
-                guard freq >= 55, freq <= 4200 else { continue }
+                guard freq >= 55, freq <= 3000 else { continue }
                 let midi = 69.0 + 12.0 * log2(freq / 440.0)
                 var pc = Int(round(midi)) % 12
                 if pc < 0 { pc += 12 }
-                chroma[pc] += sqrt(power)
+                // Bass emphasis: fundamentals decide the key more reliably
+                // than the upper harmonics of buzzy synth sounds (a saw
+                // wave's overtones can imply a whole different key).
+                let emphasis = 1.0 / (1.0 + pow(freq / 1000.0, 2.0))
+                chroma[pc] += sqrt(power) * emphasis
             }
             // Log compression tames a single dominant pitch class
             // (e.g. the kick drum), then unit-sum normalize for correlation.
