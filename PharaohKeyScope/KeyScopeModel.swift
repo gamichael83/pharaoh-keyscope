@@ -34,6 +34,24 @@ final class KeyScopeModel {
     var selfTestResult: String = ""
     var selfTestRunning: Bool = false
 
+    /// Wired by the App to the analyzer's reset().
+    var onResetAnalysis: (() -> Void)?
+
+    /// Clears detector state and the on-screen readouts so analysis
+    /// restarts fresh on the user's command (e.g. when a new track starts).
+    func resetAnalysis() {
+        onResetAnalysis?()
+        keyName = "—"
+        camelot = "—"
+        confidence = 0
+        bpm = 0
+        chroma = Array(repeating: 0, count: 12)
+        scalePitchClasses = []
+        tonicPitchClass = -1
+        topNotes = []
+        statusMessage = "Reset — listening fresh…"
+    }
+
     /// Synthesizes a 440 Hz tone and runs it through the real detector.
     /// Needs no other audio — in fact, silence from the speakers is best.
     func runPitchSelfTest() {
