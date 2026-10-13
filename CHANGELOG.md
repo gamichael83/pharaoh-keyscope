@@ -3,6 +3,14 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
+## Build 15 — Kick-drum tempo + stricter key tiebreak
+- Tempo: new kick-band (40–150 Hz) onset envelope. When the kick drums a
+  clear pulse at ~2× the detected tempo, the app trusts the kick —
+  fixes half-time misreads on four-on-the-floor EDM (59 → 121 BPM).
+- Key: bass-tonic tiebreak now much more conservative (top-two must be
+  within 0.03, bass must be ≥0.9× max and >1.5× the leader's) so a
+  wandering EDM bassline can't flip the key on modest evidence.
+
 ## Build 14 — Reset peak-tracker fix
 - Reset now sets the peak-energy tracker to a tiny value instead of
   leaving the old track's peak: the silence gate re-opens immediately
