@@ -18,6 +18,8 @@ final class AudioAnalyzer {
     private let tempoDetector = TempoDetector()
     private var frameCounter = 0
     private var peakEnergy: Float = 0
+    /// Chroma of the most recently analyzed frame (self-test readout).
+    private var lastChroma: [Double] = Array(repeating: 0, count: 12)
 
     @MainActor weak var model: KeyScopeModel?
 
@@ -134,6 +136,7 @@ final class AudioAnalyzer {
 
         frameCounter += 1
         let publishKey = frameCounter % 24 == 0
+        lastChroma = chroma
         Task { @MainActor [weak self, detection, bpm, topNotes, chroma, publishKey] in
             guard let self, let model = self.model else { return }
             model.chroma = chroma
@@ -149,5 +152,36 @@ final class AudioAnalyzer {
                 if let bpm { model.bpm = bpm }
             }
         }
+    }
+
+    // MARK: - Built-in pitch self-test
+
+    /// Strongest pitch class of the most recently analyzed frame.
+    func topChromaNote() -> String {
+        var best = 0
+        var bestVal = -Double.infinity
+        for i in 0..<12 where lastChroma[i] > bestVal {
+            bestVal = lastChroma[i]
+            best = i
+        }
+        return KeyDetection.noteNames[best]
+    }
+
+    /// Runs a synthetic 440 Hz sine through a fresh analysis pipeline and
+    /// reports which note the detector hears. No capture hardware involved —
+    /// verifies the FFT → chroma → pitch-class mapping end to end.
+    static func pitchSelfTest() -> (note: String, passed: Bool) {
+        let tester = AudioAnalyzer()
+        let sr = 48_000.0
+        let n = Int(sr * 1.5)
+        var samples = [Float](repeating: 0, count: n)
+        for i in 0..<n {
+            samples[i] = 0.5 * Float(sin(2.0 * .pi * 440.0 * Double(i) / sr))
+        }
+        let note = tester.processingQueue.sync { () -> String in
+            tester.ingest(samples: samples, sampleRate: sr)
+            return tester.topChromaNote()
+        }
+        return (note, note == "A")
     }
 }
