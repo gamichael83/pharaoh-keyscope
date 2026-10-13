@@ -3,6 +3,12 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
+## Build 17 — Reset rebuilds the analyzer
+- Reset now tears down the entire analysis pipeline and starts a fresh
+  one — same as relaunching the app, without quitting. Fixes the "have
+  to close and reopen" bug where detection stalled after Reset. No stale
+  state can survive; the new analyzer starts clean on live audio.
+
 ## Build 16 — Faster initial lock
 - Tempo: first BPM attempt after ~4 s (was ~11 s); re-estimates every
   0.25 s (was 0.5 s). Gets a number on screen fast, refines as audio
