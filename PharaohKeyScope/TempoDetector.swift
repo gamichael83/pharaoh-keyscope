@@ -1,19 +1,20 @@
 import Foundation
 
-/// Beat tracker: log-domain spectral flux → autocorrelation over a ~11 s
+/// Beat tracker: log-domain spectral flux → autocorrelation over a ~22 s
 /// window, with three stabilizers —
-///   1. a tempo-preference weight (log-Gaussian around 120 BPM) so the
-///      detector doesn't jump between half/double-time octaves,
+///   1. a tempo-preference weight (log-Gaussian around 120 BPM, σ = 1.5
+///      octaves) so the detector doesn't jump between half/double-time
+///      octaves without punishing legitimately slow songs,
 ///   2. parabolic interpolation of the winning lag for sub-1 % accuracy,
 ///   3. a sticky display that only moves after a new tempo proves itself.
 ///
-/// The first reading appears after ~7 s of audio (128 frames); the full
-/// 256-frame window refines it.
+/// The first reading is attempted after ~11 s of audio (256 frames); the
+/// full 512-frame window gives the cleanest autocorrelation for soft beats.
 final class TempoDetector {
     private var previousLogMags: [Float] = []
     private var envelope: [Float] = []
-    private let windowSize = 256
-    private let minFramesForEstimate = 128
+    private let windowSize = 512
+    private let minFramesForEstimate = 256
     private var estimates: [Double] = []
     private var framesSinceEstimate = 0
 
@@ -96,12 +97,12 @@ final class TempoDetector {
         let maxLag = min(n / 2, Int((60.0 / 50.0) / hopSeconds))
         guard maxLag > minLag else { return nil }
 
-        // Log-Gaussian preference centered on 120 BPM, σ = 1.0 octave.
+        // Log-Gaussian preference centered on 120 BPM, σ = 1.5 octaves.
         // Gentle nudge against half/double-time octave jumps without
         // punishing legitimately slow (or fast) songs.
         func preference(_ lag: Int) -> Double {
             let bpm = 60.0 / (Double(lag) * hopSeconds)
-            let octaves = log2(bpm / 120.0)
+            let octaves = log2(bpm / 120.0) / 1.5
             return exp(-0.5 * octaves * octaves)
         }
 
@@ -116,7 +117,7 @@ final class TempoDetector {
             let score = r * Float(preference(lag))
             if score > bestScore { bestScore = score; bestLag = lag }
         }
-        guard bestScore > 0.12 else { return nil }
+        guard bestScore > 0.10 else { return nil }
 
         // Parabolic interpolation on the raw curve for sub-lag precision.
         var refined = Double(bestLag)
