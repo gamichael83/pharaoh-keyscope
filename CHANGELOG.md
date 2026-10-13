@@ -3,6 +3,12 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
+## Build 14 — Reset peak-tracker fix
+- Reset now sets the peak-energy tracker to a tiny value instead of
+  leaving the old track's peak: the silence gate re-opens immediately
+  on the new audio. Fixes "nothing detected" after Reset when switching
+  from a louder to a quieter track.
+
 ## Build 13 — Key stability
 - Key detector much stickier: chroma smoothing slowed (τ ≈ 2.8 s),
   switch margin 0.08 → 0.12, sustained wins to switch 12 → 20.
