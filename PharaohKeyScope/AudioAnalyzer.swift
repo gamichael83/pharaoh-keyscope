@@ -150,7 +150,8 @@ final class AudioAnalyzer {
             let bassSum = bassChroma.reduce(0, +)
             if bassSum > 0 { bassChroma = bassChroma.map { $0 / bassSum } }
             detection = keyDetector.update(chroma: chroma, bassChroma: bassChroma)
-            bpm = tempoDetector.process(magnitudes: magnitudes, hopSeconds: hopSeconds)
+            let binHz = sampleRate / Double(frameSize)
+            bpm = tempoDetector.process(magnitudes: magnitudes, hopSeconds: hopSeconds, binHz: binHz)
         }
 
         // Top-3 pitch classes for the readout strip.
