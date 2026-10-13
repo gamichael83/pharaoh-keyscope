@@ -41,6 +41,8 @@ final class KeyDetector {
     /// passing chord doesn't yank the key around.
     private let smoothing = 0.03
     private var smoothed = [Double](repeating: 0, count: 12)
+    /// Smoothed bass-only chroma (< 250 Hz) for the tonic tiebreak.
+    private var smoothedBass = [Double](repeating: 0, count: 12)
 
     private var displayed: KeyDetection?
     private var challenger: KeyDetection?
@@ -53,10 +55,13 @@ final class KeyDetector {
 
     private(set) var last: KeyDetection?
 
-    /// - Parameter chroma: unit-sum normalized 12-bin chroma for this frame.
-    func update(chroma: [Double]) -> KeyDetection? {
+    /// - Parameters:
+    ///   - chroma: unit-sum normalized 12-bin chroma for this frame.
+    ///   - bassChroma: unit-sum normalized chroma of fundamentals below 250 Hz.
+    func update(chroma: [Double], bassChroma: [Double]) -> KeyDetection? {
         for i in 0..<12 {
             smoothed[i] = smoothing * chroma[i] + (1 - smoothing) * smoothed[i]
+            smoothedBass[i] = smoothing * bassChroma[i] + (1 - smoothing) * smoothedBass[i]
         }
         let total = smoothed.reduce(0, +)
         guard total > 1e-6 else { last = displayed; return displayed }
@@ -73,7 +78,19 @@ final class KeyDetector {
             }
         }
         scored.sort { $0.r > $1.r }
-        let best = scored[0], runnerUp = scored[1]
+        let runnerUp = scored[1]
+
+        // Tiebreak: when the top two keys are close (cousin keys share most
+        // of their notes), trust the bassline's tonic.
+        var best = scored[0]
+        if best.r - runnerUp.r < 0.06,
+           let bassMax = smoothedBass.max(), bassMax > 0.05 {
+            let bassBest = smoothedBass[best.tonic]
+            let bassRunner = smoothedBass[runnerUp.tonic]
+            if bassRunner > bassBest * 1.25 {
+                best = runnerUp
+            }
+        }
 
         let margin = best.r - runnerUp.r
         let absolute = min(1.0, max(0.0, (best.r - 0.5) * 2.0))
