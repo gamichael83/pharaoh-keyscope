@@ -1,77 +1,137 @@
 import Foundation
 
-/// Tempo estimation from the spectral-flux onset envelope via autocorrelation.
-/// Runs on the analysis queue; call from one thread only.
+/// Beat tracker: log-domain spectral flux → autocorrelation over a ~22 s
+/// window, with three stabilizers —
+///   1. a tempo-preference weight (log-Gaussian around 120 BPM) so the
+///      detector doesn't jump between half/double-time octaves,
+///   2. parabolic interpolation of the winning lag for sub-1 % accuracy,
+///   3. a sticky display that only moves after a new tempo proves itself.
 final class TempoDetector {
-    private var previousMagnitudes: [Float] = []
+    private var previousLogMags: [Float] = []
     private var envelope: [Float] = []
-    /// ~11 s of onset history at 2048-hop / 48 kHz.
     private let windowSize = 512
-    /// Recent BPM picks, for median smoothing + octave correction.
     private var estimates: [Double] = []
     private var framesSinceEstimate = 0
 
-    /// Feed one power-spectrum frame. Returns a smoothed BPM about twice a
-    /// second once the envelope window is full, otherwise nil.
+    private var displayed: Double?
+    private var candidate: Double?
+    private var candidateHits = 0
+    private let hitsToSwitch = 3
+
+    private(set) var last: Double?
+
     func process(magnitudes: [Float], hopSeconds: Double) -> Double? {
+        // Log-domain flux: onsets stand out regardless of overall loudness.
+        let logMags = magnitudes.map { log(1 + $0) }
         var flux: Float = 0
-        if previousMagnitudes.count == magnitudes.count {
-            for i in 0..<magnitudes.count {
-                let delta = magnitudes[i] - previousMagnitudes[i]
-                if delta > 0 { flux += delta }
+        if previousLogMags.count == logMags.count {
+            for i in 0..<logMags.count {
+                let d = logMags[i] - previousLogMags[i]
+                if d > 0 { flux += d }
             }
         }
-        previousMagnitudes = magnitudes
+        previousLogMags = logMags
         envelope.append(flux)
         if envelope.count > windowSize { envelope.removeFirst() }
 
         framesSinceEstimate += 1
-        guard envelope.count == windowSize, framesSinceEstimate >= 24 else { return nil }
+        guard envelope.count == windowSize, framesSinceEstimate >= 12 else {
+            last = displayed
+            return displayed
+        }
         framesSinceEstimate = 0
 
-        guard var bpm = autocorrelate(hopSeconds: hopSeconds) else { return nil }
-
-        // Fix octave errors against the running median.
-        if let med = median(estimates) {
-            if bpm > med * 1.45 { bpm /= 2 }
-            else if bpm < med * 0.55 { bpm *= 2 }
+        guard let bpm = autocorrelate(hopSeconds: hopSeconds) else {
+            last = displayed
+            return displayed
         }
-        estimates.append(bpm)
+
+        // Nudge octaves toward what we're already showing.
+        var adj = bpm
+        if let d = displayed {
+            if adj > d * 1.45 { adj /= 2 }
+            else if adj < d * 0.55 { adj *= 2 }
+        }
+        estimates.append(adj)
         if estimates.count > 9 { estimates.removeFirst() }
-        return median(estimates)
+        guard let med = median(estimates) else { last = displayed; return displayed }
+
+        let tol: (Double) -> Double = { max(1.0, $0 * 0.015) }
+        if let d = displayed, abs(med - d) <= tol(d) {
+            displayed = d * 0.6 + med * 0.4
+            candidate = nil
+            candidateHits = 0
+        } else if let c = candidate, abs(med - c) <= tol(c) {
+            candidateHits += 1
+            candidate = c * 0.7 + med * 0.3
+            if candidateHits >= hitsToSwitch {
+                displayed = candidate
+                candidate = nil
+                candidateHits = 0
+            }
+        } else {
+            candidate = med
+            candidateHits = 1
+        }
+        last = displayed
+        return displayed
     }
 
+    /// Unbiased normalized autocorrelation with a tempo-preference weight and
+    /// parabolic interpolation around the winning lag.
     private func autocorrelate(hopSeconds: Double) -> Double? {
         let n = envelope.count
         let mean = envelope.reduce(0, +) / Float(n)
         let zeroed = envelope.map { $0 - mean }
-        let energy = zeroed.reduce(0) { $0 + $1 * $1 }
-        guard energy > 1e-9 else { return nil }
+        var variance: Float = 0
+        for v in zeroed { variance += v * v }
+        variance /= Float(n)
+        guard variance > 1e-12 else { return nil }
 
-        // Lags for 50…200 BPM.
         let minLag = max(2, Int((60.0 / 200.0) / hopSeconds))
-        let maxLag = min(n - 1, Int((60.0 / 50.0) / hopSeconds))
+        let maxLag = min(n / 2, Int((60.0 / 50.0) / hopSeconds))
         guard maxLag > minLag else { return nil }
 
-        var bestLag = minLag
-        var bestValue: Float = -.infinity
-        for lag in minLag...maxLag {
-            var sum: Float = 0
-            for i in 0..<(n - lag) { sum += zeroed[i] * zeroed[i + lag] }
-            let value = sum / energy
-            if value > bestValue { bestValue = value; bestLag = lag }
+        // Log-Gaussian preference centered on 120 BPM, σ = 0.6 octave.
+        // Kills the classic half/double-time jumping.
+        func preference(_ lag: Int) -> Double {
+            let bpm = 60.0 / (Double(lag) * hopSeconds)
+            let octaves = log2(bpm / 120.0) / 0.6
+            return exp(-0.5 * octaves * octaves)
         }
-        // Too weak to trust — probably silence or ambience.
-        guard bestValue > 0.05 else { return nil }
-        return 60.0 / (Double(bestLag) * hopSeconds)
+
+        var raw = [Float](repeating: 0, count: maxLag - minLag + 1)
+        var bestLag = minLag
+        var bestScore = -Float.infinity
+        for lag in minLag...maxLag {
+            var s: Float = 0
+            for i in 0..<(n - lag) { s += zeroed[i] * zeroed[i + lag] }
+            let r = s / (Float(n - lag) * variance)
+            raw[lag - minLag] = r
+            let score = r * Float(preference(lag))
+            if score > bestScore { bestScore = score; bestLag = lag }
+        }
+        guard bestScore > 0.12 else { return nil }
+
+        // Parabolic interpolation on the raw curve for sub-lag precision.
+        var refined = Double(bestLag)
+        if bestLag > minLag, bestLag < maxLag {
+            let r0 = raw[bestLag - minLag - 1]
+            let r1 = raw[bestLag - minLag]
+            let r2 = raw[bestLag - minLag + 1]
+            let den = Double(r0 - 2 * r1 + r2)
+            if abs(den) > 1e-6 {
+                let delta = 0.5 * Double(r0 - r2) / den
+                if abs(delta) <= 1 { refined = Double(bestLag) + delta }
+            }
+        }
+        return 60.0 / (refined * hopSeconds)
     }
 
     private func median(_ values: [Double]) -> Double? {
         guard !values.isEmpty else { return nil }
-        let sorted = values.sorted()
-        let mid = sorted.count / 2
-        return sorted.count % 2 == 0
-            ? (sorted[mid - 1] + sorted[mid]) / 2
-            : sorted[mid]
+        let s = values.sorted()
+        let m = s.count / 2
+        return s.count % 2 == 1 ? s[m] : (s[m - 1] + s[m]) / 2
     }
 }
