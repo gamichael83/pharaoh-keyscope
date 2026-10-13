@@ -40,6 +40,9 @@ struct KeyScopeApp: App {
             await MainActor.run {
                 model.isCapturing = false
                 model.statusMessage = "Couldn't start capture: \(error.localizedDescription)"
+                let msg = error.localizedDescription.lowercased()
+                model.permissionDenied = msg.contains("tcc") || msg.contains("declin")
+                    || msg.contains("not authorized") || msg.contains("denied")
             }
         }
     }
