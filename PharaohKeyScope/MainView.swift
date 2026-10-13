@@ -72,6 +72,24 @@ struct MainView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Spacer()
+                if model.permissionDenied {
+                    Button("Reset Permission") {
+                        model.resetCapturePermission()
+                    }
+                    .font(.footnote)
+                    .help("Clears the stuck Screen Recording entry, then quits — reopen and allow when asked")
+                }
+                if !model.selfTestResult.isEmpty {
+                    Text(model.selfTestResult)
+                        .font(.footnote)
+                        .foregroundStyle(model.selfTestResult.hasPrefix("PASS") ? .green : .red)
+                }
+                Button(model.selfTestRunning ? "Testing…" : "Verify Pitch") {
+                    model.runPitchSelfTest()
+                }
+                .font(.footnote)
+                .disabled(model.selfTestRunning)
+                .help("Runs a synthetic 440 Hz tone through the detector to verify pitch mapping")
             }
         }
         .padding(20)
