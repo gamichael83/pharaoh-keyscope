@@ -3,11 +3,14 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
-## Build 17 — Reset rebuilds the analyzer
-- Reset now tears down the entire analysis pipeline and starts a fresh
-  one — same as relaunching the app, without quitting. Fixes the "have
-  to close and reopen" bug where detection stalled after Reset. No stale
-  state can survive; the new analyzer starts clean on live audio.
+## Build 17 — Reset reliability (sync + bounded ingest)
+- Reset now runs synchronously — takes effect immediately instead of
+  queuing behind pending audio buffers. Fixes the "have to close and
+  reopen" stall.
+- Ingest is bounded: ring capped before processing, max 4 frames per
+  call. The pipeline can't backlog, so Reset never waits.
+- (Build 17 first attempt tried rebuilding the analyzer; reverted —
+  the sync reset + bounded ingest is simpler and sufficient.)
 
 ## Build 16 — Faster initial lock
 - Tempo: first BPM attempt after ~4 s (was ~11 s); re-estimates every
