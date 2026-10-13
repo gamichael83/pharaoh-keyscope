@@ -3,6 +3,12 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
+## Build 11 — Tempo octave correction
+- If the half-tempo lag also has a strong autocorrelation peak
+  (≥ 0.6× the winning peak), the detector now prefers the slower,
+  fundamental beat. Fixes double-time readings like 143 BPM on a
+  72 BPM ballad, where eighth-note subdivisions outscored the true tactus.
+
 ## Build 10 — Reset button
 - New **Reset** button in the status bar: clears all detector memory
   (key smoothing, bass chroma, tempo history, sticky display) and the
