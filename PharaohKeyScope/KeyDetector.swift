@@ -55,6 +55,17 @@ final class KeyDetector {
 
     private(set) var last: KeyDetection?
 
+    /// Clears all accumulated state so detection restarts fresh
+    /// (e.g. when the user switches tracks and wants a clean read).
+    func reset() {
+        smoothed = [Double](repeating: 0, count: 12)
+        smoothedBass = [Double](repeating: 0, count: 12)
+        displayed = nil
+        challenger = nil
+        challengerWins = 0
+        last = nil
+    }
+
     /// - Parameters:
     ///   - chroma: unit-sum normalized 12-bin chroma for this frame.
     ///   - bassChroma: unit-sum normalized chroma of fundamentals below 250 Hz.
