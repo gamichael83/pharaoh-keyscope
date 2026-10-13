@@ -3,6 +3,12 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
+## Build 13 — Key stability
+- Key detector much stickier: chroma smoothing slowed (τ ≈ 2.8 s),
+  switch margin 0.08 → 0.12, sustained wins to switch 12 → 20.
+  Stops the rapid jumping between close candidates in harmonically
+  ambiguous sections.
+
 ## Build 12 — Reset reliability fix
 - Reset no longer clears the audio ring buffer or peak tracker —
   Build 11's version stalled the pipeline (nothing detected after Reset).
