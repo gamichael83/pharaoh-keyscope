@@ -3,12 +3,12 @@ import Foundation
 
 /// Turns raw system-audio samples into key / BPM / chroma updates.
 /// All DSP runs on a private serial queue; results are published to the
-/// @MainActor model. Call `receive` from any thread.
+/// model on the main actor. Larger FFT (8192) for decent bass resolution,
+/// log-compressed chroma so one loud partial can't dominate the key vote.
 final class AudioAnalyzer {
-    private let frameSize = 4096
+    private let frameSize = 8192
     private let hopSize = 2048
-    private let processingQueue = DispatchQueue(
-        label: "com.pharaohluxury.keyscope.analysis")
+    private let processingQueue = DispatchQueue(label: "com.pharaohluxury.keyscope.analysis")
 
     private var ring: [Float] = []
     private var sampleRate: Double = 48_000
@@ -17,6 +17,7 @@ final class AudioAnalyzer {
     private let keyDetector = KeyDetector()
     private let tempoDetector = TempoDetector()
     private var frameCounter = 0
+    private var peakEnergy: Float = 0
 
     @MainActor weak var model: KeyScopeModel?
 
@@ -28,18 +29,15 @@ final class AudioAnalyzer {
         fftSetup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2))!
     }
 
-    deinit {
-        vDSP_destroy_fftsetup(fftSetup)
-    }
+    deinit { vDSP_destroy_fftsetup(fftSetup) }
 
-    /// Called from the capture thread with mono Float32 samples.
     func receive(samples: [Float], sampleRate: Double) {
         processingQueue.async { [weak self] in
             self?.ingest(samples: samples, sampleRate: sampleRate)
         }
     }
 
-    // MARK: - Private (processing queue only)
+    // MARK: - Pipeline
 
     private func ingest(samples: [Float], sampleRate: Double) {
         self.sampleRate = sampleRate
@@ -48,84 +46,100 @@ final class AudioAnalyzer {
             process(frame: Array(ring.prefix(frameSize)))
             ring.removeFirst(hopSize)
         }
-        // Safety valve: never let the ring grow unbounded.
         let cap = frameSize * 4
         if ring.count > cap { ring.removeFirst(ring.count - cap) }
     }
 
     private func process(frame: [Float]) {
-        // Window, then real-to-complex FFT via Accelerate.
-        var windowed = [Float](repeating: 0, count: frameSize)
-        vDSP_vmul(frame, 1, window, 1, &windowed, 1, vDSP_Length(frameSize))
+        let n = frameSize
+        var windowed = [Float](repeating: 0, count: n)
+        vDSP_vmul(frame, 1, window, 1, &windowed, 1, vDSP_Length(n))
 
-        var realp = [Float](repeating: 0, count: frameSize / 2)
-        var imagp = [Float](repeating: 0, count: frameSize / 2)
-        var magnitudes = [Float](repeating: 0, count: frameSize / 2)
-        let log2n = vDSP_Length(log2(Float(frameSize)))
-
-        realp.withUnsafeMutableBufferPointer { rbp in
-            imagp.withUnsafeMutableBufferPointer { ibp in
-                var split = DSPSplitComplex(realp: rbp.baseAddress!,
-                                            imagp: ibp.baseAddress!)
-                windowed.withUnsafeBufferPointer { wbp in
-                    wbp.baseAddress!.withMemoryRebound(to: DSPComplex.self,
-                                                      capacity: frameSize / 2) { src in
-                        vDSP_ctoz(src, 2, &split, 1, vDSP_Length(frameSize / 2))
+        var realp = [Float](repeating: 0, count: n / 2)
+        var imagp = [Float](repeating: 0, count: n / 2)
+        realp.withUnsafeMutableBufferPointer { rp in
+            imagp.withUnsafeMutableBufferPointer { ip in
+                var split = DSPSplitComplex(realp: rp.baseAddress!, imagp: ip.baseAddress!)
+                windowed.withUnsafeBufferPointer { bp in
+                    bp.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: n / 2) { cp in
+                        vDSP_ctoz(cp, 2, &split, 1, vDSP_Length(n / 2))
                     }
                 }
-                vDSP_fft_zrip(fftSetup, &split, 1, log2n, FFTDirection(FFT_FORWARD))
-                vDSP_zvmags(&split, 1, &magnitudes, 1, vDSP_Length(frameSize / 2))
+                vDSP_fft_zrip(fftSetup, &split, 1, vDSP_Length(log2(Float(n))), FFTDirection(FFT_FORWARD))
             }
         }
+
+        // Power spectrum.
+        var magnitudes = [Float](repeating: 0, count: n / 2)
+        realp.withUnsafeBufferPointer { rp in
+            imagp.withUnsafeBufferPointer { ip in
+                var split = DSPSplitComplex(realp: UnsafeMutablePointer(mutating: rp.baseAddress!),
+                                            imagp: UnsafeMutablePointer(mutating: ip.baseAddress!))
+                vDSP_zvmags(&split, 1, &magnitudes, 1, vDSP_Length(n / 2))
+            }
+        }
+        // Fix DC and Nyquist scaling from the packed real FFT.
+        magnitudes[0] *= 0.5
+        if magnitudes.count > 1 { magnitudes[magnitudes.count - 1] *= 0.5 }
+
         analyze(magnitudes: magnitudes)
     }
 
     private func analyze(magnitudes: [Float]) {
-        // --- Chroma: fold the spectrum into 12 pitch classes. ---
+        // Silence gate: ignore frames far below recent peak energy so noise
+        // doesn't inject garbage into the detectors.
+        let energy = magnitudes.reduce(0, +)
+        peakEnergy = max(energy, peakEnergy * 0.999)
+        let audible = peakEnergy > 0 && energy > 0.03 * peakEnergy
+
         var chroma = [Double](repeating: 0, count: 12)
-        let bins = magnitudes.count
-        for k in 2..<bins {
-            let power = Double(magnitudes[k])
-            guard power > 0 else { continue }
-            let freq = Double(k) * sampleRate / Double(frameSize)
-            guard freq >= 55, freq <= 4200 else { continue } // musical range
-            let midi = 69.0 + 12.0 * log2(freq / 440.0)
-            var pc = Int(round(midi)) % 12
-            if pc < 0 { pc += 12 }
-            chroma[pc] += sqrt(power) // soften dominant partials a little
+        if audible {
+            let bins = magnitudes.count
+            for k in 2..<bins {
+                let power = Double(magnitudes[k])
+                guard power > 0 else { continue }
+                let freq = Double(k) * sampleRate / Double(frameSize)
+                guard freq >= 55, freq <= 4200 else { continue }
+                let midi = 69.0 + 12.0 * log2(freq / 440.0)
+                var pc = Int(round(midi)) % 12
+                if pc < 0 { pc += 12 }
+                chroma[pc] += sqrt(power)
+            }
+            // Log compression tames a single dominant pitch class
+            // (e.g. the kick drum), then unit-sum normalize for correlation.
+            let compressed = chroma.map { log(1 + $0) }
+            let sum = compressed.reduce(0, +)
+            if sum > 0 { chroma = compressed.map { $0 / sum } }
         }
-        let peak = chroma.max() ?? 0
-        let normalized = peak > 0 ? chroma.map { $0 / peak } : chroma
 
-        // --- Key + tempo ---
-        let detection = keyDetector.update(chroma: normalized)
         let hopSeconds = Double(hopSize) / sampleRate
-        let bpm = tempoDetector.process(magnitudes: magnitudes,
-                                        hopSeconds: hopSeconds)
+        var detection = keyDetector.last
+        var bpm = tempoDetector.last
+        if audible {
+            detection = keyDetector.update(chroma: chroma)
+            bpm = tempoDetector.process(magnitudes: magnitudes, hopSeconds: hopSeconds)
+        }
 
-        // --- Top notes for the readout ---
-        let topNotes = normalized.enumerated()
-            .sorted { $0.element > $1.element }
-            .prefix(3)
-            .map { KeyDetection.noteNames[$0.offset] }
+        // Top-3 pitch classes for the readout strip.
+        let topNotes: [String]? = audible
+            ? chroma.enumerated()
+                .sorted { $0.element > $1.element }
+                .prefix(3)
+                .map { KeyDetection.noteNames[$0.offset] }
+            : nil
 
         frameCounter += 1
-        // Key/BPM text updates ~2×/s; the note visualizer gets every frame.
-        let publishKey = frameCounter % 12 == 0
-
-        Task { @MainActor [weak self, detection, bpm, normalized, topNotes, publishKey] in
-            guard let model = self?.model else { return }
-            model.chroma = normalized
-            model.topNotes = topNotes
-            if publishKey, let detection {
-                model.keyName = detection.name
-                model.camelot = detection.camelot
-                model.confidence = detection.confidence
-                model.scalePitchClasses = detection.scalePitchClasses
-                model.tonicPitchClass = detection.tonic
-            }
-            if let bpm {
-                model.bpm = bpm
+        let publishKey = frameCounter % 24 == 0
+        Task { @MainActor [weak self, detection, bpm, topNotes, chroma, publishKey] in
+            guard let self, let model = self.model else { return }
+            model.chroma = chroma
+            if let topNotes { model.topNotes = topNotes }
+            if publishKey {
+                if let detection {
+                    model.detectedKey = detection
+                    model.keyConfidence = detection.confidence
+                }
+                if let bpm { model.bpm = bpm }
             }
         }
     }
