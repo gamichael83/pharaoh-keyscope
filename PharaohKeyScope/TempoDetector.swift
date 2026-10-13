@@ -1,15 +1,19 @@
 import Foundation
 
-/// Beat tracker: log-domain spectral flux → autocorrelation over a ~22 s
+/// Beat tracker: log-domain spectral flux → autocorrelation over a ~11 s
 /// window, with three stabilizers —
 ///   1. a tempo-preference weight (log-Gaussian around 120 BPM) so the
 ///      detector doesn't jump between half/double-time octaves,
 ///   2. parabolic interpolation of the winning lag for sub-1 % accuracy,
 ///   3. a sticky display that only moves after a new tempo proves itself.
+///
+/// The first reading appears after ~7 s of audio (128 frames); the full
+/// 256-frame window refines it.
 final class TempoDetector {
     private var previousLogMags: [Float] = []
     private var envelope: [Float] = []
-    private let windowSize = 512
+    private let windowSize = 256
+    private let minFramesForEstimate = 128
     private var estimates: [Double] = []
     private var framesSinceEstimate = 0
 
@@ -35,7 +39,7 @@ final class TempoDetector {
         if envelope.count > windowSize { envelope.removeFirst() }
 
         framesSinceEstimate += 1
-        guard envelope.count == windowSize, framesSinceEstimate >= 12 else {
+        guard envelope.count >= minFramesForEstimate, framesSinceEstimate >= 12 else {
             last = displayed
             return displayed
         }
