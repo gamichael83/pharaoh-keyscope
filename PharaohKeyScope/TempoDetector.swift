@@ -92,11 +92,12 @@ final class TempoDetector {
         let maxLag = min(n / 2, Int((60.0 / 50.0) / hopSeconds))
         guard maxLag > minLag else { return nil }
 
-        // Log-Gaussian preference centered on 120 BPM, σ = 0.6 octave.
-        // Kills the classic half/double-time jumping.
+        // Log-Gaussian preference centered on 120 BPM, σ = 1.0 octave.
+        // Gentle nudge against half/double-time octave jumps without
+        // punishing legitimately slow (or fast) songs.
         func preference(_ lag: Int) -> Double {
             let bpm = 60.0 / (Double(lag) * hopSeconds)
-            let octaves = log2(bpm / 120.0) / 0.6
+            let octaves = log2(bpm / 120.0)
             return exp(-0.5 * octaves * octaves)
         }
 
