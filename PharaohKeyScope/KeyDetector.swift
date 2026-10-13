@@ -39,7 +39,7 @@ final class KeyDetector {
 
     /// Slow smoothing: ~1.4 s time constant at ~23 fps, so a drum fill or
     /// passing chord doesn't yank the key around.
-    private let smoothing = 0.03
+    private let smoothing = 0.015
     private var smoothed = [Double](repeating: 0, count: 12)
     /// Smoothed bass-only chroma (< 250 Hz) for the tonic tiebreak.
     private var smoothedBass = [Double](repeating: 0, count: 12)
@@ -48,10 +48,10 @@ final class KeyDetector {
     private var challenger: KeyDetection?
     private var challengerWins = 0
     /// Consecutive wins a challenger needs before it takes the display.
-    private let winsToSwitch = 12
+    private let winsToSwitch = 20
     /// A challenger must beat the displayed key's correlation by this much
     /// before it can even start counting wins. Near-ties hold the display.
-    private let switchMargin = 0.08
+    private let switchMargin = 0.12
 
     private(set) var last: KeyDetection?
 
