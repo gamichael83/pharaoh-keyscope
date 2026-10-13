@@ -136,8 +136,11 @@ final class AudioAnalyzer {
             if let topNotes { model.topNotes = topNotes }
             if publishKey {
                 if let detection {
-                    model.detectedKey = detection
-                    model.keyConfidence = detection.confidence
+                    model.keyName = detection.name
+                    model.camelot = detection.camelot
+                    model.confidence = detection.confidence
+                    model.scalePitchClasses = detection.scalePitchClasses
+                    model.tonicPitchClass = detection.tonic
                 }
                 if let bpm { model.bpm = bpm }
             }
