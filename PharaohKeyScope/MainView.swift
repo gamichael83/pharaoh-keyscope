@@ -3,7 +3,7 @@ import SwiftUI
 /// In-app build number. Increment with every functional build pushed to
 /// GitHub, and include it in the commit message (e.g. "Build 8: ...") so
 /// the GitHub run list and the app itself stay in order.
-let keyScopeBuildNumber = 8
+let keyScopeBuildNumber = 9
 
 /// The full-size window: key + Camelot readout, BPM, live note visualizer,
 /// scale piano strip, and capture status.
