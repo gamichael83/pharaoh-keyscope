@@ -40,13 +40,15 @@ final class AudioAnalyzer {
     }
 
     /// Clears detector state so analysis restarts fresh on the user's
-    /// command. Keeps the audio ring buffer and peak tracker intact so
-    /// the pipeline doesn't stall — only the musical analysis restarts.
+    /// command. Keeps the audio ring buffer intact so the pipeline doesn't
+    /// stall; resets the peak tracker to a tiny value so the silence gate
+    /// re-opens immediately on live audio (not stuck at the old track's peak).
     func reset() {
         processingQueue.async { [weak self] in
             guard let self else { return }
             self.keyDetector.reset()
             self.tempoDetector.reset()
+            self.peakEnergy = 1e-6
         }
     }
 
