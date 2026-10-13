@@ -3,6 +3,11 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
+## Build 12 — Reset reliability fix
+- Reset no longer clears the audio ring buffer or peak tracker —
+  Build 11's version stalled the pipeline (nothing detected after Reset).
+  Now only the key/tempo detector state is cleared; audio keeps flowing.
+
 ## Build 11 — Tempo octave correction
 - If the half-tempo lag also has a strong autocorrelation peak
   (≥ 0.6× the winning peak), the detector now prefers the slower,
