@@ -17,7 +17,10 @@ final class TempoDetector {
     /// for EDM/house. Used to override half-time misreads.
     private var kickEnvelope: [Float] = []
     private let windowSize = 512
-    private let minFramesForEstimate = 256
+    /// First tempo attempt after ~4 s (96 frames) — fast initial lock,
+    /// then refines as the window fills. Speed matters more than perfection
+    /// on the first read; the median + sticky display stabilize it.
+    private let minFramesForEstimate = 96
     private var estimates: [Double] = []
     private var framesSinceEstimate = 0
 
@@ -68,7 +71,7 @@ final class TempoDetector {
         if kickEnvelope.count > windowSize { kickEnvelope.removeFirst() }
 
         framesSinceEstimate += 1
-        guard envelope.count >= minFramesForEstimate, framesSinceEstimate >= 12 else {
+        guard envelope.count >= minFramesForEstimate, framesSinceEstimate >= 6 else {
             last = displayed
             return displayed
         }
