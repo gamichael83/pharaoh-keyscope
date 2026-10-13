@@ -25,6 +25,18 @@ final class TempoDetector {
 
     private(set) var last: Double?
 
+    /// Clears all accumulated state so tempo detection restarts fresh.
+    func reset() {
+        previousLogMags = []
+        envelope = []
+        estimates = []
+        framesSinceEstimate = 0
+        displayed = nil
+        candidate = nil
+        candidateHits = 0
+        last = nil
+    }
+
     func process(magnitudes: [Float], hopSeconds: Double) -> Double? {
         // Log-domain flux: onsets stand out regardless of overall loudness.
         let logMags = magnitudes.map { log(1 + $0) }
