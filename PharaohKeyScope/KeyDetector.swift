@@ -39,7 +39,7 @@ final class KeyDetector {
 
     /// Slow smoothing: ~1.4 s time constant at ~23 fps, so a drum fill or
     /// passing chord doesn't yank the key around.
-    private let smoothing = 0.015
+    private let smoothing = 0.028
     private var smoothed = [Double](repeating: 0, count: 12)
     /// Smoothed bass-only chroma (< 250 Hz) for the tonic tiebreak.
     private var smoothedBass = [Double](repeating: 0, count: 12)
