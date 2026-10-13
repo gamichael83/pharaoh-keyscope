@@ -3,7 +3,7 @@ import SwiftUI
 /// In-app build number. Increment with every functional build pushed to
 /// GitHub, and include it in the commit message (e.g. "Build 8: ...") so
 /// the GitHub run list and the app itself stay in order.
-let keyScopeBuildNumber = 9
+let keyScopeBuildNumber = 10
 
 /// The full-size window: key + Camelot readout, BPM, live note visualizer,
 /// scale piano strip, and capture status.
@@ -95,6 +95,11 @@ struct MainView: View {
                 .font(.footnote)
                 .disabled(model.selfTestRunning)
                 .help("Runs a synthetic 440 Hz tone through the detector to verify pitch mapping")
+                Button("Reset") {
+                    model.resetAnalysis()
+                }
+                .font(.footnote)
+                .help("Clears the key/BPM history and restarts listening fresh")
                 Text("Build \(keyScopeBuildNumber)")
                     .font(.footnote)
                     .foregroundStyle(.tertiary)
