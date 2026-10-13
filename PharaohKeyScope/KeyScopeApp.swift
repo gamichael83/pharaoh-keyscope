@@ -26,6 +26,7 @@ struct KeyScopeApp: App {
         await MainActor.run {
             analyzer.model = model
             capture.model = model
+            model.onResetAnalysis = { [analyzer] in analyzer.reset() }
         }
         capture.onSamples = { [analyzer] samples, rate in
             analyzer.receive(samples: samples, sampleRate: rate)
