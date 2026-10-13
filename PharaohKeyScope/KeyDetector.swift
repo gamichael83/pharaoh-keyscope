@@ -46,7 +46,10 @@ final class KeyDetector {
     private var challenger: KeyDetection?
     private var challengerWins = 0
     /// Consecutive wins a challenger needs before it takes the display.
-    private let winsToSwitch = 8
+    private let winsToSwitch = 12
+    /// A challenger must beat the displayed key's correlation by this much
+    /// before it can even start counting wins. Near-ties hold the display.
+    private let switchMargin = 0.08
 
     private(set) var last: KeyDetection?
 
@@ -59,41 +62,50 @@ final class KeyDetector {
         guard total > 1e-6 else { last = displayed; return displayed }
         let vector = smoothed.map { $0 / total }
 
-        var best = -2.0, runnerUp = -2.0
-        var bestTonic = 0, bestMinor = false
+        // Correlate against all 24 keys, best first.
+        var scored: [(tonic: Int, isMinor: Bool, r: Double)] = []
+        scored.reserveCapacity(24)
         for tonic in 0..<12 {
             for isMinor in [false, true] {
                 let profile = isMinor ? Self.minorProfile : Self.majorProfile
-                let r = pearson(vector, rotated(profile, tonic: tonic))
-                if r > best {
-                    runnerUp = best; best = r
-                    bestTonic = tonic; bestMinor = isMinor
-                } else if r > runnerUp {
-                    runnerUp = r
-                }
+                scored.append((tonic, isMinor,
+                               pearson(vector, rotated(profile, tonic: tonic))))
+            }
+        }
+        scored.sort { $0.r > $1.r }
+        let best = scored[0], runnerUp = scored[1]
+
+        let margin = best.r - runnerUp.r
+        let absolute = min(1.0, max(0.0, (best.r - 0.5) * 2.0))
+        let marginC = min(1.0, max(0.0, margin * 6.0))
+        let confidence = absolute * 0.5 + marginC * 0.5
+        let current = KeyDetection(tonic: best.tonic, isMinor: best.isMinor,
+                                   confidence: confidence)
+
+        // Hysteresis: the displayed key holds unless a challenger beats
+        // its *current* correlation by a real margin.
+        if let d = displayed {
+            let dProfile = d.isMinor ? Self.minorProfile : Self.majorProfile
+            let dCorr = pearson(vector, rotated(dProfile, tonic: d.tonic))
+            if best.r - dCorr < switchMargin {
+                challenger = nil
+                challengerWins = 0
+                let held = KeyDetection(tonic: d.tonic, isMinor: d.isMinor,
+                                        confidence: min(1.0, max(0.0, (dCorr - 0.5) * 2.0)))
+                last = held
+                return held
             }
         }
 
-        let margin = best - runnerUp
-        let absolute = min(1.0, max(0.0, (best - 0.5) * 2.0))
-        let marginC = min(1.0, max(0.0, margin * 6.0))
-        let confidence = absolute * 0.5 + marginC * 0.5
-        let current = KeyDetection(tonic: bestTonic, isMinor: bestMinor,
-                                   confidence: confidence)
-
-        if let d = displayed, d.id == current.id {
-            challenger = nil
-            challengerWins = 0
-            last = current
-            return current
-        }
         if let c = challenger, c.id == current.id {
             challengerWins += 1
         } else {
             challenger = current
             challengerWins = 1
         }
-        if challengerWins >= winsToSwitch {
+        // First reading appears quickly; later switches need sustained wins.
+        let needed = displayed == nil ? 4 : winsToSwitch
+        if challengerWins >= needed {
             displayed = current
             challenger = nil
             challengerWins = 0
