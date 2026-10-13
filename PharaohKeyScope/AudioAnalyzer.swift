@@ -40,11 +40,12 @@ final class AudioAnalyzer {
     }
 
     /// Clears detector state so analysis restarts fresh on the user's
-    /// command. Keeps the audio ring buffer intact so the pipeline doesn't
-    /// stall; resets the peak tracker to a tiny value so the silence gate
-    /// re-opens immediately on live audio (not stuck at the old track's peak).
+    /// command. Runs synchronously — the reset takes effect immediately,
+    /// not queued behind pending audio buffers. Keeps the ring buffer
+    /// intact (bounded by ingest) so the pipeline doesn't stall; resets
+    /// the peak tracker so the silence gate re-opens on live audio.
     func reset() {
-        processingQueue.async { [weak self] in
+        processingQueue.sync { [weak self] in
             guard let self else { return }
             self.keyDetector.reset()
             self.tempoDetector.reset()
@@ -57,12 +58,18 @@ final class AudioAnalyzer {
     private func ingest(samples: [Float], sampleRate: Double) {
         self.sampleRate = sampleRate
         ring.append(contentsOf: samples)
-        while ring.count >= frameSize {
-            process(frame: Array(ring.prefix(frameSize)))
-            ring.removeFirst(hopSize)
-        }
+        // Bound the ring BEFORE processing — if we're behind, drop old
+        // audio instead of burning CPU catching up. Keeps the queue from
+        // backlogging, so Reset (sync) never waits behind stale buffers.
         let cap = frameSize * 4
         if ring.count > cap { ring.removeFirst(ring.count - cap) }
+        // Process at most 4 frames per call — real-time can't wait.
+        var processed = 0
+        while ring.count >= frameSize && processed < 4 {
+            process(frame: Array(ring.prefix(frameSize)))
+            ring.removeFirst(hopSize)
+            processed += 1
+        }
     }
 
     private func process(frame: [Float]) {
