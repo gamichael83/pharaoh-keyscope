@@ -3,6 +3,15 @@
 Every functional build pushed to GitHub, in order. The in-app "Build N"
 label (bottom status bar) matches the commit message here.
 
+## Build 16 — Faster initial lock
+- Tempo: first BPM attempt after ~4 s (was ~11 s); re-estimates every
+  0.25 s (was 0.5 s). Gets a number on screen fast, refines as audio
+  accumulates.
+- Key: chroma smoothing τ 2.8 s → 1.5 s for quicker convergence on a new
+  track; keeps the anti-jump hysteresis (0.12 margin, 20 wins).
+- Note: KeyScope hears the full system mix — for testing, play one deck
+  at a time. Two tempos/keys at once confuses any listener.
+
 ## Build 15 — Kick-drum tempo + stricter key tiebreak
 - Tempo: new kick-band (40–150 Hz) onset envelope. When the kick drums a
   clear pulse at ~2× the detected tempo, the app trusts the kick —
