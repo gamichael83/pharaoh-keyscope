@@ -39,6 +39,19 @@ final class AudioAnalyzer {
         }
     }
 
+    /// Clears detector state, the audio ring buffer, and the peak tracker,
+    /// so analysis restarts fresh on the user's command.
+    func reset() {
+        processingQueue.async { [weak self] in
+            guard let self else { return }
+            self.keyDetector.reset()
+            self.tempoDetector.reset()
+            self.ring.removeAll()
+            self.peakEnergy = 0
+            self.lastChroma = Array(repeating: 0, count: 12)
+        }
+    }
+
     // MARK: - Pipeline
 
     private func ingest(samples: [Float], sampleRate: Double) {
