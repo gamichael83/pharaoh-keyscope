@@ -129,6 +129,19 @@ final class TempoDetector {
             let score = r * Float(preference(lag))
             if score > bestScore { bestScore = score; bestLag = lag }
         }
+
+        // Octave correction: if the half-tempo lag also has a strong peak,
+        // prefer the slower (fundamental) beat. Subdivisions (eighth-note
+        // strums, hi-hats) often outscore the true tactus in ballads.
+        if bestLag * 2 <= maxLag {
+            let fast = raw[bestLag - minLag]
+            let slow = raw[bestLag * 2 - minLag]
+            if slow > fast * 0.6 {
+                bestLag *= 2
+                bestScore = slow * Float(preference(bestLag))
+            }
+        }
+
         guard bestScore > 0.10 else { return nil }
 
         // Parabolic interpolation on the raw curve for sub-lag precision.
