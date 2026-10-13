@@ -13,6 +13,9 @@ import Foundation
 final class TempoDetector {
     private var previousLogMags: [Float] = []
     private var envelope: [Float] = []
+    /// Kick-band (40–150 Hz) onset envelope — the four-on-the-floor truth
+    /// for EDM/house. Used to override half-time misreads.
+    private var kickEnvelope: [Float] = []
     private let windowSize = 512
     private let minFramesForEstimate = 256
     private var estimates: [Double] = []
@@ -29,6 +32,7 @@ final class TempoDetector {
     func reset() {
         previousLogMags = []
         envelope = []
+        kickEnvelope = []
         estimates = []
         framesSinceEstimate = 0
         displayed = nil
@@ -37,19 +41,31 @@ final class TempoDetector {
         last = nil
     }
 
-    func process(magnitudes: [Float], hopSeconds: Double) -> Double? {
+    func process(magnitudes: [Float], hopSeconds: Double, binHz: Double) -> Double? {
         // Log-domain flux: onsets stand out regardless of overall loudness.
         let logMags = magnitudes.map { log(1 + $0) }
         var flux: Float = 0
+        var kickFlux: Float = 0
         if previousLogMags.count == logMags.count {
             for i in 0..<logMags.count {
                 let d = logMags[i] - previousLogMags[i]
                 if d > 0 { flux += d }
             }
+            // Kick band: 40–150 Hz. Four-on-the-floor lives here.
+            let kickLow = max(0, Int(40.0 / binHz))
+            let kickHigh = min(logMags.count - 1, Int(150.0 / binHz))
+            if kickHigh >= kickLow {
+                for i in kickLow...kickHigh {
+                    let d = logMags[i] - previousLogMags[i]
+                    if d > 0 { kickFlux += d }
+                }
+            }
         }
         previousLogMags = logMags
         envelope.append(flux)
         if envelope.count > windowSize { envelope.removeFirst() }
+        kickEnvelope.append(kickFlux)
+        if kickEnvelope.count > windowSize { kickEnvelope.removeFirst() }
 
         framesSinceEstimate += 1
         guard envelope.count >= minFramesForEstimate, framesSinceEstimate >= 12 else {
@@ -58,9 +74,18 @@ final class TempoDetector {
         }
         framesSinceEstimate = 0
 
-        guard let bpm = autocorrelate(hopSeconds: hopSeconds) else {
+        guard let fullBpm = autocorrelate(hopSeconds: hopSeconds) else {
             last = displayed
             return displayed
+        }
+
+        // Kick override: if the kick drum pounds a clear pulse at ~2× the
+        // detected tempo, the detector heard half-time — trust the kick.
+        // (EDM four-on-the-floor: 121 BPM kick vs 59 BPM half-time read.)
+        var bpm = fullBpm
+        if let kickBpm = kickTempo(hopSeconds: hopSeconds),
+           abs(kickBpm - fullBpm * 2) / (fullBpm * 2) < 0.06 {
+            bpm = kickBpm
         }
 
         // Nudge octaves toward what we're already showing.
@@ -157,6 +182,36 @@ final class TempoDetector {
             }
         }
         return 60.0 / (refined * hopSeconds)
+    }
+
+    /// Autocorrelates the kick-band envelope. Returns the kick BPM only if
+    /// the peak is strong (a clear four-on-the-floor); nil otherwise.
+    /// No preference weighting, no octave correction — the kick IS the beat.
+    private func kickTempo(hopSeconds: Double) -> Double? {
+        let n = kickEnvelope.count
+        guard n >= minFramesForEstimate else { return nil }
+        let mean = kickEnvelope.reduce(0, +) / Float(n)
+        let zeroed = kickEnvelope.map { $0 - mean }
+        var variance: Float = 0
+        for v in zeroed { variance += v * v }
+        variance /= Float(n)
+        guard variance > 1e-12 else { return nil }
+
+        let minLag = max(2, Int((60.0 / 200.0) / hopSeconds))
+        let maxLag = min(n / 2, Int((60.0 / 50.0) / hopSeconds))
+        guard maxLag > minLag else { return nil }
+
+        var bestLag = minLag
+        var bestScore = -Float.infinity
+        for lag in minLag...maxLag {
+            var s: Float = 0
+            for i in 0..<(n - lag) { s += zeroed[i] * zeroed[i + lag] }
+            let r = s / (Float(n - lag) * variance)
+            if r > bestScore { bestScore = r; bestLag = lag }
+        }
+        // Require a strong, clear kick pulse.
+        guard bestScore > 0.25 else { return nil }
+        return 60.0 / (Double(bestLag) * hopSeconds)
     }
 
     private func median(_ values: [Double]) -> Double? {
