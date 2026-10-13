@@ -95,6 +95,9 @@ final class AudioAnalyzer {
         let audible = peakEnergy > 0 && energy > 0.03 * peakEnergy
 
         var chroma = [Double](repeating: 0, count: 12)
+        let hopSeconds = Double(hopSize) / sampleRate
+        var detection = keyDetector.last
+        var bpm = tempoDetector.last
         if audible {
             let bins = magnitudes.count
             for k in 2..<bins {
@@ -116,13 +119,24 @@ final class AudioAnalyzer {
             let compressed = chroma.map { log(1 + $0) }
             let sum = compressed.reduce(0, +)
             if sum > 0 { chroma = compressed.map { $0 / sum } }
-        }
 
-        let hopSeconds = Double(hopSize) / sampleRate
-        var detection = keyDetector.last
-        var bpm = tempoDetector.last
-        if audible {
-            detection = keyDetector.update(chroma: chroma)
+            // Bass chroma (fundamentals below 250 Hz) for the key tiebreak —
+            // the bassline usually sits on the true tonic.
+            var bassChroma = [Double](repeating: 0, count: 12)
+            let bins2 = magnitudes.count
+            for k in 2..<bins2 {
+                let power = Double(magnitudes[k])
+                guard power > 0 else { continue }
+                let freq = Double(k) * sampleRate / Double(frameSize)
+                guard freq >= 55, freq < 250 else { continue }
+                let midi = 69.0 + 12.0 * log2(freq / 440.0)
+                var pc = Int(round(midi)) % 12
+                if pc < 0 { pc += 12 }
+                bassChroma[pc] += sqrt(power)
+            }
+            let bassSum = bassChroma.reduce(0, +)
+            if bassSum > 0 { bassChroma = bassChroma.map { $0 / bassSum } }
+            detection = keyDetector.update(chroma: chroma, bassChroma: bassChroma)
             bpm = tempoDetector.process(magnitudes: magnitudes, hopSeconds: hopSeconds)
         }
 
